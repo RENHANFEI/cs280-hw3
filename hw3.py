@@ -35,7 +35,7 @@ import argparse
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--epochs', type=int, default=2)
-    parser.add_argument('--batch-size', type=int, default=16)
+    parser.add_argument('--batch-size', type=int, default=4)
     parser.add_argument('--data-dir', default='./data')
     return parser.parse_args()
 args = parse_args()
@@ -198,29 +198,30 @@ for epoch in range(args.epochs):  # loop over the dataset multiple times
         correct_train += sum(y_pred_train == y_train)
         running_loss += loss.item()
 
-        # Test the network on the test data
-        # get the inputs
-        inputs, labels = list(testloader)[i]
-        # predict outputs
-        outputs = net(inputs)
-        logits = outputs.cpu().detach().numpy()
-
-        # compute validation statistics
-        y_pred_train = np.argmax(logits, axis=1)
-        y_train = labels.cpu().detach().numpy()
-        total_val += y_train.shape[0]
-        correct_val += sum(y_pred_train == y_train)
-
         if i % 20 == 0:
+            # Test the network on the test data
+            for j, test_data in enumerate(testloader, 0):
+                # get the inputs
+                inputs, labels = test_data
+                # predict outputs
+                outputs = net(inputs)
+                logits = outputs.cpu().detach().numpy()
+
+                # compute validation statistics
+                y_pred_train = np.argmax(logits, axis=1)
+                y_train = labels.cpu().detach().numpy()
+                total_val += y_train.shape[0]
+                correct_val += sum(y_pred_train == y_train)
+
+            result = {}
+            result['train_accuracy'] = correct_train / total_train
+            result['val_accuracy'] = correct_val / total_val
+            result['num_epochs'] = args.epochs
+            result['train_loss'] = running_loss
+            results.append(result)
+
             print("Epoch:", epoch, "\tMiniBatch:", i, "\tPartial Training Accuracy:", correct_train / total_train,
                   "\tRunning Loss:", running_loss / (i + 1), "\tPartial Validation Accuracy:", correct_val / total_val)
-
-        result = {}
-        result['train_accuracy'] = correct_train / total_train
-        result['val_accuracy'] = correct_val / total_val
-        result['num_epochs'] = args.epochs
-        result['train_loss'] = running_loss
-        results.append(result)
 
     print("Epoch:", epoch, "\tFinal Training Accuracy:", {correct_train / total_train},
           "\tFinal Validation Accuracy:", {correct_val / total_val})
