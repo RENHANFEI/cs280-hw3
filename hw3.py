@@ -234,7 +234,7 @@ for epoch in range(args.epochs):  # loop over the dataset multiple times
             results.append(result)
 
             print("Epoch:", epoch, "\tMiniBatch:", i, "\tPartial Training Accuracy:", correct_train / total_train,
-                  "\tRunning Loss:", running_loss / (i + 1), "\tPartial Validation Accuracy:", {correct_val / total_val})
+                  "\tRunning Loss:", running_loss / (i + 1), "\tPartial Validation Accuracy:", correct_val / total_val)
 
     print("Epoch:", epoch, "\tFinal Training Accuracy:", {correct_train / total_train})
     print("Epoch:", epoch, "\tFinal Validation Accuracy:", {correct_val / total_val})
