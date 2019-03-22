@@ -36,6 +36,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--epochs', type=int, default=2)
     parser.add_argument('--batch-size', type=int, default=4)
+    parser.add_argument('--gpu', default=False, action="store_const", const=True)
     parser.add_argument('--data-dir', default='./data')
     return parser.parse_args()
 args = parse_args()
@@ -165,6 +166,11 @@ optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
 import numpy as np
 import pandas as pd
 
+if (torch.cuda.is_available() and args.gpu):
+    device = torch.device('cuda')
+else:
+    device = torch.device('cpu')
+
 results = []
 
 # print(list(enumerate(trainloader, 0)))
@@ -180,6 +186,10 @@ for epoch in range(args.epochs):  # loop over the dataset multiple times
         inputs, labels = data
         # zero the parameter gradients
         optimizer.zero_grad()
+
+        if (torch.cuda.is_available() and args.gpu):
+            labels = labels.cuda()
+            inputs = inputs.cuda()
 
         # forward + backward
         outputs = net(inputs)
@@ -203,6 +213,9 @@ for epoch in range(args.epochs):  # loop over the dataset multiple times
             for j, test_data in enumerate(testloader, 0):
                 # get the inputs
                 inputs, labels = test_data
+                if (torch.cuda.is_available() and args.gpu):
+                    labels = labels.cuda()
+                    inputs = inputs.cuda()
                 # predict outputs
                 outputs = net(inputs)
                 logits = outputs.cpu().detach().numpy()
