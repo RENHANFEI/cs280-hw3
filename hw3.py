@@ -35,7 +35,7 @@ import argparse
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--epochs', type=int, default=4)
-    parser.add_argument('--batch-size', type=int, default=64)
+    parser.add_argument('--batch-size', type=int, default=16)
     parser.add_argument('--gpu', default=False, action="store_const", const=True)
     parser.add_argument('--data-dir', default='./data')
     return parser.parse_args()
@@ -97,17 +97,17 @@ class PreActBlock(nn.Module):
 class MyResNet(nn.Module):
     def __init__(self, num_blocks=[2, 2, 2, 2], num_classes=10):
         super(MyResNet, self).__init__()
-        self.in_channels = 32
+        self.in_channels = 64
 
         self.prep = nn.Sequential(
-            nn.Conv2d(3, 32, kernel_size=3, stride=1, padding=1, bias=False),
-            nn.BatchNorm2d(32),
+            nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False),
+            nn.BatchNorm2d(64),
             nn.ReLU()
         )
 
         self.layers = nn.Sequential(
-            self._make_layer(32, 64, num_blocks[0], stride=1),
-            self._make_layer(64, 128, num_blocks[1], stride=1),
+            self._make_layer(64, 64, num_blocks[0], stride=1),
+            self._make_layer(64, 128, num_blocks[1], stride=2),
             self._make_layer(128, 128, num_blocks[2], stride=2),
         )
 
@@ -173,7 +173,6 @@ else:
 
 results = []
 
-# print(list(enumerate(trainloader, 0)))
 
 for epoch in range(args.epochs):  # loop over the dataset multiple times
     running_loss = 0.0
@@ -208,33 +207,37 @@ for epoch in range(args.epochs):  # loop over the dataset multiple times
         correct_train += sum(y_pred_train == y_train)
         running_loss += loss.item()
 
-        print("Epoch:", epoch, "\tMiniBatch:", i, "\tPartial Training Accuracy:", correct_train / total_train,
-             "\tRunning Loss:", running_loss / (i + 1))
-        print("Epoch:", epoch, "\tFinal Training Accuracy:", {correct_train / total_train})
 
-        for i, data in enumerate(testloader, 0):
-            # get the inputs
-            inputs, labels = data
-            if (torch.cuda.is_available() and args.gpu):
-                labels = labels.cuda()
-                inputs = inputs.cuda()
-            # predict outputs
-            outputs = net(inputs)
-            logits = outputs.cpu().detach().numpy()
+        if i % 20 == 0:
 
-            # compute validation statistics
-            y_pred_train = np.argmax(logits, axis=1)
-            y_train = labels.cpu().detach().numpy()
-            total_val += y_train.shape[0]
-            correct_val += sum(y_pred_train == y_train)
-            print("Epoch:", epoch, "\tMiniBatch:", i, "\tPartial Validation Accuracy:", correct_val / total_val)
-        print("Epoch:", epoch, "\tFinal Validation Accuracy:", {correct_val / total_val})
-        result = {}
-        result['train_accuracy'] = correct_train / total_train
-        result['val_accuracy'] = correct_val / total_val
-        result['num_epochs'] = args.epochs
-        result['train_loss'] = running_loss
-        results.append(result)
+            for j, data in enumerate(testloader, 0):
+                # get the inputs
+                inputs, labels = data
+                if (torch.cuda.is_available() and args.gpu):
+                    labels = labels.cuda()
+                    inputs = inputs.cuda()
+                # predict outputs
+                outputs = net(inputs)
+                logits = outputs.cpu().detach().numpy()
+
+                # compute validation statistics
+                y_pred_train = np.argmax(logits, axis=1)
+                y_train = labels.cpu().detach().numpy()
+                total_val += y_train.shape[0]
+                correct_val += sum(y_pred_train == y_train)
+                # print("Epoch:", epoch, "\tMiniBatch:", j, "\tPartial Validation Accuracy:", correct_val / total_val)
+            result = {}
+            result['train_accuracy'] = correct_train / total_train
+            result['val_accuracy'] = correct_val / total_val
+            result['num_epochs'] = args.epochs
+            result['train_loss'] = running_loss
+            results.append(result)
+
+            print("Epoch:", epoch, "\tMiniBatch:", i, "\tPartial Training Accuracy:", correct_train / total_train,
+                  "\tRunning Loss:", running_loss / (i + 1), "\tPartial Validation Accuracy:", {correct_val / total_val})
+
+    print("Epoch:", epoch, "\tFinal Training Accuracy:", {correct_train / total_train})
+    print("Epoch:", epoch, "\tFinal Validation Accuracy:", {correct_val / total_val})
 
 
 df = pd.DataFrame([result])
