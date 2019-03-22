@@ -34,8 +34,8 @@ import argparse
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--epochs', type=int, default=3)
-    parser.add_argument('--batch-size', type=int, default=16)
+    parser.add_argument('--epochs', type=int, default=4)
+    parser.add_argument('--batch-size', type=int, default=64)
     parser.add_argument('--gpu', default=False, action="store_const", const=True)
     parser.add_argument('--data-dir', default='./data')
     return parser.parse_args()
