@@ -214,6 +214,7 @@ for epoch in range(args.epochs):  # loop over the dataset multiple times
                 # get the inputs
                 inputs, labels = test_data
                 if (torch.cuda.is_available() and args.gpu):
+                    print("?")
                     labels = labels.cuda()
                     inputs = inputs.cuda()
                 # predict outputs
