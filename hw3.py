@@ -246,4 +246,4 @@ print(df)
 results = np.array(results)
 results.dump('./accuracies.txt')
 
-
+print(net.parameters())
