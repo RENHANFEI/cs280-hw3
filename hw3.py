@@ -244,6 +244,6 @@ df = pd.DataFrame([result])
 print(df)
 
 results = np.array(results)
-results.dump('accuracies.txt')
+results.dump('./accuracies.txt')
 
 
