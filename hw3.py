@@ -32,13 +32,16 @@ import torchvision.transforms as transforms
 
 import argparse
 
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--epochs', type=int, default=4)
-    parser.add_argument('--batch-size', type=int, default=16)
+    parser.add_argument('--batch-size', type=int, default=4)
     parser.add_argument('--gpu', default=False, action="store_const", const=True)
     parser.add_argument('--data-dir', default='./data')
     return parser.parse_args()
+
+
 args = parse_args()
 
 ########################################################################
@@ -72,14 +75,15 @@ classes = ('plane', 'car', 'bird', 'cat',
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class PreActBlock(nn.Module):
 
     def __init__(self, in_channels, out_channels, stride=1):
         super().__init__()
 
-        self.bn1   = nn.BatchNorm2d(in_channels)
+        self.bn1 = nn.BatchNorm2d(in_channels)
         self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False)
-        self.bn2   = nn.BatchNorm2d(out_channels)
+        self.bn2 = nn.BatchNorm2d(out_channels)
         self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False)
 
         if stride != 1 or in_channels != out_channels:
@@ -93,6 +97,7 @@ class PreActBlock(nn.Module):
         out = self.conv1(out)
         out = self.conv2(F.relu(self.bn2(out)))
         return out + shortcut
+
 
 class MyResNet(nn.Module):
     def __init__(self, num_blocks=[2, 2, 2, 2], num_classes=10):
@@ -173,13 +178,13 @@ else:
 
 results = []
 
-
 for epoch in range(args.epochs):  # loop over the dataset multiple times
     running_loss = 0.0
     total_train = 0;
     correct_train = 0
     total_val = 0;
     correct_val = 0
+
     for i, data in enumerate(trainloader, 0):
         # get the inputs
         inputs, labels = data
@@ -196,7 +201,6 @@ for epoch in range(args.epochs):  # loop over the dataset multiple times
         loss.backward()
 
         # optimize
-        lr = 0.001
         optimizer.step()
 
         # compute training statistics
@@ -207,43 +211,66 @@ for epoch in range(args.epochs):  # loop over the dataset multiple times
         correct_train += sum(y_pred_train == y_train)
         running_loss += loss.item()
 
-
-        if i % 20 == 0:
-
-            for j, data in enumerate(testloader, 0):
-                # get the inputs
-                inputs, labels = data
-                if (torch.cuda.is_available() and args.gpu):
-                    labels = labels.cuda()
-                    inputs = inputs.cuda()
-                # predict outputs
-                outputs = net(inputs)
-                logits = outputs.cpu().detach().numpy()
-
-                # compute validation statistics
-                y_pred_train = np.argmax(logits, axis=1)
-                y_train = labels.cpu().detach().numpy()
-                total_val += y_train.shape[0]
-                correct_val += sum(y_pred_train == y_train)
-                # print("Epoch:", epoch, "\tMiniBatch:", j, "\tPartial Validation Accuracy:", correct_val / total_val)
-            result = {}
-            result['train_accuracy'] = correct_train / total_train
-            result['val_accuracy'] = correct_val / total_val
-            result['num_epochs'] = args.epochs
-            result['train_loss'] = running_loss
-            results.append(result)
-
+        if i % 500 == 499:  # print every 500 mini-batches
             print("Epoch:", epoch, "\tMiniBatch:", i, "\tPartial Training Accuracy:", correct_train / total_train,
-                  "\tRunning Loss:", running_loss / (i + 1), "\tPartial Validation Accuracy:", correct_val / total_val)
+                  "\tRunning Loss:", running_loss / (i + 1))
 
-    print("Epoch:", epoch, "\tFinal Training Accuracy:", {correct_train / total_train})
+    for i, data in enumerate(testloader, 0):
+        # get the inputs
+        inputs, labels = data
+        if (torch.cuda.is_available() and args.gpu):
+            labels = labels.cuda()
+            inputs = inputs.cuda()
+        # predict outputs
+        outputs = net(inputs)
+        logits = outputs.cpu().detach().numpy()
+
+        # compute validation statistics
+        y_pred_train = np.argmax(logits, axis=1)
+        y_train = labels.cpu().detach().numpy()
+        total_val += y_train.shape[0]
+        correct_val += sum(y_pred_train == y_train)
+        if i % 500 == 499:  # print every 500 mini-batches
+            print("Epoch:", epoch, "\tMiniBatch:", i, "\tPartial Validation Accuracy:", correct_val / total_val)
+
     print("Epoch:", epoch, "\tFinal Validation Accuracy:", {correct_val / total_val})
 
+    # if i % 20 == 0:
+    #
+    # for j, data in enumerate(testloader, 0):
+    #     # get the inputs
+    #     inputs, labels = data
+    #     if (torch.cuda.is_available() and args.gpu):
+    #         labels = labels.cuda()
+    #         inputs = inputs.cuda()
+    #     # predict outputs
+    #     outputs = net(inputs)
+    #     logits = outputs.cpu().detach().numpy()
+    #
+    #     # compute validation statistics
+    #     y_pred_train = np.argmax(logits, axis=1)
+    #     y_train = labels.cpu().detach().numpy()
+    #     total_val += y_train.shape[0]
+    #     correct_val += sum(y_pred_train == y_train)
+    #     # print("Epoch:", epoch, "\tMiniBatch:", j, "\tPartial Validation Accuracy:", correct_val / total_val)
+    # result = {}
+    # result['train_accuracy'] = correct_train / total_train
+    # result['val_accuracy'] = correct_val / total_val
+    # result['num_epochs'] = args.epochs
+    # result['train_loss'] = running_loss
+    # results.append(result)
+    #
+    # print("Epoch:", epoch, "\tMiniBatch:", i, "\tPartial Training Accuracy:", correct_train / total_train,
+    #           "\tRunning Loss:", running_loss / (i + 1), "\tPartial Validation Accuracy:", correct_val / total_val)
 
-df = pd.DataFrame([result])
-print(df)
+    # print("Epoch:", epoch, "\tFinal Training Accuracy:", {correct_train / total_train})
+    # print("Epoch:", epoch, "\tFinal Validation Accuracy:", {correct_val / total_val})
 
-results = np.array(results)
-results.dump('./accuracies.txt')
+# df = pd.DataFrame([result])
+# print(df)
+
+# results = np.array(results)
+# results.dump('./accuracies.txt')
 
 print(net.parameters())
+torch.save(net.state_dict(), 'model.pt')
